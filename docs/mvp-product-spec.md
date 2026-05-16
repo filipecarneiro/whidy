@@ -6,6 +6,8 @@ For a project overview, see [README.md](../README.md).
 
 A CLI tool that reconstructs a developer's workday from development activity and produces a human-readable, standup-style summary.
 
+---
+
 ## Core Principles
 
 - No database

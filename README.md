@@ -28,7 +28,7 @@ Instead of raw logs, Whidy gives you:
 - what you worked on
 - where your focus was
 - how your time was distributed
-- a clean standup style summary
+- a clean standup-style summary
 
 Example output:
 
@@ -55,7 +55,7 @@ Web App
 
 - Reconstructs your workday from commits, pull requests, code reviews, and builds
 - Groups activity into meaningful work areas
-- Generates standup ready summaries
+- Generates standup-ready summaries
 - Detects focus, context switching, and work patterns
 - Runs entirely from the command line
 - No background services
