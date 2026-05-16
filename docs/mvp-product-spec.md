@@ -1,13 +1,10 @@
 # Whidy — Product Specification (MVP)
 
+For a project overview, see [README.md](../README.md).
+
 ## Overview
 
-Whidy is a lightweight CLI tool that reconstructs a developer's workday from development activity — commits, pull requests, code reviews, and builds.  
-It answers the question: **What did I do yesterday?** in a human-readable, standup-style format.
-
-The goal is not tracking, but understanding work through automatic interpretation of development activity.
-
----
+A CLI tool that reconstructs a developer's workday from development activity and produces a human-readable, standup-style summary.
 
 ## Core Principles
 
