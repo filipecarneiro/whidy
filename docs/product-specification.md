@@ -20,7 +20,14 @@ The goal is not tracking, but understanding work through automatic interpretatio
 - Human-readable output
 
 ---
+## Target Audience
 
+- Scrum developers preparing for daily standups
+- Distributed teams with asynchronous communication
+- Freelancers working across multiple repositories
+- Engineers who want to replace manual standup notes with real activity data
+
+---
 ## Primary Use Case
 
 Developers run Whidy at any time to see a structured summary of their previous day’s work:
@@ -34,13 +41,68 @@ Developers run Whidy at any time to see a structured summary of their previous d
 
 ## Command Interface
 
-### yesterday
+All arguments resolve to a datetime interval internally and are processed through the same pipeline.  
+If no argument is provided, `yesterday` is assumed.
+
+### yesterday _(default)_
 
 ```
 whidy yesterday
 ```
 
 Generates a structured report of the previous calendar day.
+
+---
+
+### today
+
+```
+whidy today
+```
+
+Generates a report of the current day so far.
+
+---
+
+### week day
+
+```
+whidy monday
+whidy friday
+```
+
+Generates a report for the most recent past occurrence of the specified weekday.
+
+---
+
+### specific date
+
+```
+whidy 2026-05-12
+```
+
+Generates a report for the given date. Accepts ISO 8601 format (YYYY-MM-DD).
+
+---
+
+### date interval
+
+```
+whidy 2026-05-12 2026-05-16
+```
+
+Generates a report spanning the specified date range (inclusive).
+
+---
+
+### relative periods
+
+```
+whidy last-week
+whidy last-month
+```
+
+Generates a report for the previous full calendar week or month.
 
 ---
 
@@ -53,6 +115,23 @@ CLI Application
 → Event Normalizer  
 → Insight Engine  
 → Console Renderer  
+
+---
+
+## First-Run Flow
+
+On first execution, Whidy prompts the user for a repository, project, or PR link from their Git provider:
+
+```
+Paste any repository, project or PR link:
+> https://dev.azure.com/my-org/project/_git/repo
+```
+
+- The organization is extracted automatically from the URL
+- The user is then prompted for a Personal Access Token
+- Configuration is saved locally and reused on subsequent runs
+
+Supported providers: Azure DevOps, GitHub (and other Git providers).
 
 ---
 
@@ -210,3 +289,5 @@ Whidy does NOT:
 - Episode persistence layer
 - Windows UI wrapper
 - Advanced behavioral insights
+- Improved insight engine
+- Better context switching detection
