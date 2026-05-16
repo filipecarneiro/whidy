@@ -1,6 +1,6 @@
 # Whidy
 
-A CLI that reconstructs your workday from commits and pull requests.
+A CLI that reconstructs your workday from commits, pull requests, code reviews, and builds.
 
 It answers one question every developer knows from Scrum standups:
 
@@ -14,6 +14,8 @@ Whidy solves this by rebuilding your day from real engineering activity:
 
 - commits
 - pull requests
+- code reviews
+- builds
 
 No manual logging. No timesheets. No tracking.
 
@@ -33,24 +35,25 @@ Example output:
 ```
 YESTERDAY
 
-Authentication Service  
+Authentication Service
 You spent most of your time here.
 
-- Fixed login token refresh issue
-- Reviewed authentication flow improvements
+• Fixed login token refresh issue
+• Reviewed authentication flow improvements
+• Added retry logic to token validation
 
-Web App  
-- UI adjustments in dashboard layout
+Web App
+• UI adjustments in dashboard layout
 
-Insights  
-- Focused primarily on authentication work
-- Mostly stabilization and bug fixing
-- Low context switching
+📊 Insights
+• You focused primarily on backend authentication work
+• Mostly stabilization and debugging — low feature output
+• Low context switching (focused session)
 ```
 
 ## Features
 
-- Reconstructs your workday from commits and pull requests
+- Reconstructs your workday from commits, pull requests, code reviews, and builds
 - Groups activity into meaningful work areas
 - Generates standup ready summaries
 - Detects focus, context switching, and work patterns
@@ -61,15 +64,17 @@ Insights
 
 ## Installation
 
-``` bash
-dotnet build
+Download the latest `whidy.exe` from [GitHub Releases](https://github.com/filipecarneiro/whidy/releases), place it anywhere in your `PATH`, and run it.
+
+No .NET runtime required — it is a self-contained executable.
+
+### Building from source
+
+```bash
+dotnet publish -r win-x64 -c Release --self-contained true -p:PublishSingleFile=true
 ```
 
-or future release:
-
-```
-whidy install
-```
+The output is a single `whidy.exe` in `bin/Release/net10.0/win-x64/publish/`.
 
 ## Usage
 ### Generate yesterday’s report
@@ -80,38 +85,43 @@ whidy yesterday
 
 ## First run
 
-On first execution, Whidy will:
-
-1. Ask for an Azure DevOps or Git provider link
-1. Extract your organization automatically
-1. Request a Personal Access Token
-1. Generate your first workday summary immediately
-
-Example:
-
 ```
-Paste any repository, project or PR link:
+Welcome to Whidy!
+
+To get started, paste any Azure DevOps link — a repository, project, or pull request URL:
 > https://dev.azure.com/my-org/project/_git/repo
+
+Got it. Now you'll need a Personal Access Token (PAT).
+
+Open Azure DevOps → User Settings → Personal Access Tokens → New Token
+Required permissions: Code (read), Pull Request Threads (read), Build (read)
+
+Paste your token:
+> ************
+
+All set. Fetching your activity...
 ```
+
+Configuration is saved locally and reused on subsequent runs.
 
 ## How it works
 
 Whidy is built on a simple idea:
 
-> Your work already exists in commits and pull requests. It just needs to be interpreted.
+> Your work already exists in commits, pull requests, code reviews, and builds. It just needs to be interpreted.
 
 Pipeline:
 
 ```
-Commits + Pull Requests
-        ↓
-Event grouping
-        ↓
-Episode detection
-        ↓
-Insight engine
-        ↓
-Human readable standup
+Commits · Pull Requests · Reviews · Builds
+                ↓
+        Event normalisation
+                ↓
+    Episode grouping (by repo + time)
+                ↓
+          Insight engine
+                ↓
+    Human-readable standup report
 ```
 
 ## Design philosophy
@@ -136,12 +146,7 @@ It is a reflection tool.
 
 ## Roadmap
 
-- GitHub integration
-- Jira integration
-- Improved insight engine
-- Windows UI companion
-- “Today so far” live mode
-- Better context switching detection
+See [ROADMAP.md](ROADMAP.md).
 
 
 ## The idea
