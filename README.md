@@ -46,9 +46,9 @@ Web App
 • UI adjustments in dashboard layout
 
 📊 Insights
-• You focused primarily on backend authentication work
-• Mostly stabilization and debugging — low feature output
-• Low context switching (focused session)
+• You spent most of your time in Authentication Service
+• You spent most of your time fixing issues rather than adding features
+• You hit a flow state, a concentrated burst of focused activity
 ```
 
 ## Features

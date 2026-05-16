@@ -199,7 +199,7 @@ No expiration tracking. No authentication pre-validation.
 
 ### Application Settings
 
-Stored in `appsettings.json` alongside the application binary. Not intended for end-user modification.
+Default values are compiled into the application binary. An optional `appsettings.json` placed alongside the executable at runtime overrides these defaults. Not intended for end-user modification.
 
 ```json
 {
@@ -456,9 +456,9 @@ Web App
 • UI adjustments in dashboard layout
 
 📊 Insights
-• You focused primarily on backend authentication work
-• You mostly did stabilization and debugging (low feature output)
-• You stayed focused throughout the day (low context switching)
+• You spent most of your time in Authentication Service
+• You spent most of your time fixing issues rather than adding features
+• You hit a flow state, a concentrated burst of focused activity
 ```
 
 ---
@@ -489,6 +489,8 @@ Web App
 
 Whidy is not summarising events.  
 It is reconstructing attention — surfacing where the developer's focus actually was, independent of raw commit counts or PR volume.
+
+### First Successful Run
 
 On first successful run, Whidy must:
 
