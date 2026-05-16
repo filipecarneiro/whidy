@@ -127,11 +127,11 @@ Paste any repository, project or PR link:
 > https://dev.azure.com/my-org/project/_git/repo
 ```
 
-- The organization is extracted automatically from the URL
+- The full provider URL is extracted from the input and stored in configuration
 - The user is then prompted for a Personal Access Token
 - Configuration is saved locally and reused on subsequent runs
 
-Supported providers: Azure DevOps, GitHub (and other Git providers).
+Supported provider (MVP): Azure DevOps.
 
 ---
 
@@ -141,11 +141,12 @@ Stored locally in a JSON file:
 
 ```json
 {
-  "organization": "optional-or-inferred-context",
+  "url": "https://dev.azure.com/my-org/",
   "pat": "personal-access-token"
 }
 ```
 
+The `url` field stores the full provider URL (Azure DevOps, GitHub, etc.) and is used to determine the provider type and organization at runtime.  
 No expiration tracking. No authentication pre-validation.
 
 ---
@@ -284,7 +285,7 @@ Whidy does NOT:
 
 ## Future Extensions
 
-- GitHub integration expansion
+- GitHub integration
 - Jira integration
 - Episode persistence layer
 - Windows UI wrapper
