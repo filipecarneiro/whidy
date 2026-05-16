@@ -178,7 +178,7 @@ Supported provider (MVP): Azure DevOps.
 
 ### User Configuration
 
-Stored at `~/.whidy/config.json`, created with owner-only read permissions (mode 600 on Unix; restricted ACL on Windows).
+Stored at `%APPDATA%\Whidy\config.json`.
 
 ```json
 {
@@ -430,14 +430,14 @@ The header is derived from the **actual date range returned**, not the argument 
 | 2–6 days ago | weekday name: `MONDAY`, `FRIDAY`, etc. |
 | Previous full calendar week | `LAST WEEK` |
 | Previous full calendar month | `LAST MONTH` |
-| Specific date older than 7 days | `MAY 12, 2026` |
-| Multi-day range | `MAY 12–16, 2026` |
+| Specific date older than 7 days | `12-05-2026` or `05-12-2026` |
+| Multi-day range | `12-05-2026 to 16-05-2026` |
 
 Arguments that resolve to the same period produce the same header. For example, on 2026-05-16 both `whidy yesterday` and `whidy 2026-05-15` produce `YESTERDAY`.
 
 When the `yesterday` lookback fires and returns a day within the last 6 days, the header shows the weekday name (e.g., `FRIDAY`). If the lookback returns a day older than 6 days, the header shows the explicit date.
 
-All keyword labels (`TODAY`, `YESTERDAY`, weekday names, `LAST WEEK`, `LAST MONTH`) are fixed English strings. Explicit dates (rows 6 and 7 in the table) are formatted using the user's system locale settings.
+All keyword labels (`TODAY`, `YESTERDAY`, weekday names, `LAST WEEK`, `LAST MONTH`) are fixed English strings. Explicit dates use a numeric short date format based on the user's Windows regional date order preference (for example `DD-MM-YYYY` or `MM-DD-YYYY`) so the output remains English-only.
 
 ### Example
 
@@ -485,6 +485,7 @@ Web App
 - No jargon, no pipeline identifiers, no branch names in output
 - The reader should recognise their own day without needing to decode anything
 - The application is English only; no localization or translation
+- Numeric dates may follow the user's Windows regional short date order, but never use localized month or weekday names
 
 Whidy is not summarising events.  
 It is reconstructing attention — surfacing where the developer's focus actually was, independent of raw commit counts or PR volume.
