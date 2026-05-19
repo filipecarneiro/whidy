@@ -178,7 +178,7 @@ Supported provider (MVP): Azure DevOps.
 
 ### User Configuration
 
-Stored at `%APPDATA%\Whidy\config.json`.
+Stored at `{ApplicationData}/Whidy/config.json`, where `{ApplicationData}` resolves via `Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)` — `%APPDATA%` on Windows, `~/Library/Application Support` on macOS, `~/.config` on Linux.
 
 ```json
 {
@@ -485,7 +485,7 @@ Web App
 - No jargon, no pipeline identifiers, no branch names in output
 - The reader should recognise their own day without needing to decode anything
 - The application is English only; no localization or translation
-- Numeric dates may follow the user's Windows regional short date order, but never use localized month or weekday names
+- Numeric dates may follow the OS regional short date order (resolved via `CultureInfo.CurrentCulture`), but never use localized month or weekday names
 
 Whidy is not summarising events.  
 It is reconstructing attention — surfacing where the developer's focus actually was, independent of raw commit counts or PR volume.
@@ -522,5 +522,4 @@ The following are explicitly out of scope for the MVP and tracked in the [roadma
 - Non-console output formats (web UI, desktop app, email, etc.)
 - Machine learning or LLM-based analysis. All insight generation is rule-based
 - Internationalization (i18n) and localization
-- Multi-platform support. The MVP is built and tested on Windows only
 - MSI or packaged installer. Distribution is a self-contained single-file executable via GitHub Releases
