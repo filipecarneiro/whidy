@@ -142,3 +142,45 @@ public record AzBuild(
 public record AzBuildDefinition(
     [property: JsonPropertyName("id")] int Id,
     [property: JsonPropertyName("name")] string Name);
+
+// ── Releases / Deployments ────────────────────────────────────────────────────────────
+
+public record AzDeploymentsResponse(
+    [property: JsonPropertyName("value")] List<AzDeployment> Value);
+
+public record AzDeployment(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("release")] AzReleaseRef Release,
+    [property: JsonPropertyName("releaseDefinition")] AzReleaseDefinitionRef ReleaseDefinition,
+    [property: JsonPropertyName("releaseEnvironment")] AzReleaseEnvironmentRef ReleaseEnvironment,
+    [property: JsonPropertyName("requestedFor")] AzIdentityRef RequestedFor,
+    [property: JsonPropertyName("startedOn")] DateTimeOffset? StartedOn,
+    [property: JsonPropertyName("completedOn")] DateTimeOffset? CompletedOn,
+    [property: JsonPropertyName("deploymentStatus")] string DeploymentStatus);
+
+public record AzReleaseRef(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string Name);
+
+public record AzReleaseDefinitionRef(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string Name);
+
+public record AzReleaseEnvironmentRef(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string Name);
+
+// ── Test Runs ──────────────────────────────────────────────────────────────────────
+
+public record AzTestRunsResponse(
+    [property: JsonPropertyName("value")] List<AzTestRun> Value);
+
+public record AzTestRun(
+    [property: JsonPropertyName("id")] int Id,
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("owner")] AzIdentityRef Owner,
+    [property: JsonPropertyName("startedDate")] DateTimeOffset? StartedDate,
+    [property: JsonPropertyName("completedDate")] DateTimeOffset? CompletedDate,
+    [property: JsonPropertyName("state")] string State,
+    [property: JsonPropertyName("totalTests")] int TotalTests,
+    [property: JsonPropertyName("passedTests")] int PassedTests);

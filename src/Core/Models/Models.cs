@@ -6,7 +6,9 @@ public enum EventType
     PullRequest,
     PrComment,
     PrApproval,
-    Build
+    Build,
+    Deployment,
+    TestRun
 }
 
 public enum BuildOutcome
@@ -36,6 +38,9 @@ public class WorkEvent
 
     /// Work item ID referenced by this event (extracted from AB#NNN before title stripping).
     public int? WorkItemId { get; init; }
+
+    /// Failed test count for TestRun events.
+    public int? FailedTests { get; init; }
 }
 
 public enum EpisodeType

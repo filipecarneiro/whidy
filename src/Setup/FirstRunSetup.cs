@@ -36,7 +36,7 @@ public class FirstRunSetup
         Console.WriteLine($"Got it. Now you'll need a Personal Access Token (PAT).");
         Console.WriteLine();
         Console.WriteLine("Open Azure DevOps → User Settings → Personal Access Tokens → New Token");
-        Console.WriteLine("Required permissions: Code (read), Pull Request Threads (read), Build (read), Work Items (read)");
+        Console.WriteLine("Required permissions: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)");
         Console.WriteLine();
         Console.Write("Paste your token:");
         Console.Write("\r> ");

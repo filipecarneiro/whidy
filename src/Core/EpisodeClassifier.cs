@@ -21,9 +21,17 @@ public static class EpisodeClassifier
             e.Type is EventType.PullRequest or EventType.PrComment or EventType.PrApproval).ToList();
         var commitEvents = episode.Events.Where(e => e.Type == EventType.Commit).ToList();
 
-        // 1. Debugging: any failed/partial build, or same pipeline triggered > threshold times
+        // 1. Debugging: any failed/partial build, failed deployment, or test run with failures
         if (buildEvents.Any(b =>
             b.Outcome is BuildOutcome.Failed or BuildOutcome.PartiallySucceeded))
+            return EpisodeType.Debugging;
+
+        var deploymentEvents = episode.Events.Where(e => e.Type == EventType.Deployment).ToList();
+        if (deploymentEvents.Any(d => d.Outcome == BuildOutcome.Failed))
+            return EpisodeType.Debugging;
+
+        var testRunEvents = episode.Events.Where(e => e.Type == EventType.TestRun).ToList();
+        if (testRunEvents.Any(t => t.FailedTests.GetValueOrDefault() > 0))
             return EpisodeType.Debugging;
 
         var pipelineRetriggers = buildEvents

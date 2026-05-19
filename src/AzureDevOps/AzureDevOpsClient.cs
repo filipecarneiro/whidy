@@ -170,7 +170,34 @@ public class AzureDevOpsClient
 
         return results;
     }
+    // ── Releases / Deployments ──────────────────────────────────────────────────────
 
+    public async Task<List<AzDeployment>> GetDeploymentsAsync(
+        string projectName, DateTimeOffset from, DateTimeOffset to)
+    {
+        // Release management is on vsrm.dev.azure.com, not dev.azure.com
+        var vsrmBase = _orgUrl.Replace("dev.azure.com", "vsrm.dev.azure.com",
+            StringComparison.OrdinalIgnoreCase);
+        var url = $"{vsrmBase}/{Uri.EscapeDataString(projectName)}/_apis/release/deployments"
+            + $"?minStartedTime={Uri.EscapeDataString(from.ToString("o"))}"
+            + $"&maxStartedTime={Uri.EscapeDataString(to.ToString("o"))}"
+            + $"&deploymentStatus=succeeded,failed&$top=200&api-version=7.1";
+        var response = await GetAsync<AzDeploymentsResponse>(url);
+        return response.Value;
+    }
+
+    // ── Test Runs ───────────────────────────────────────────────────────────────────
+
+    public async Task<List<AzTestRun>> GetTestRunsAsync(
+        string projectName, DateTimeOffset from, DateTimeOffset to)
+    {
+        var url = $"{_orgUrl}/{Uri.EscapeDataString(projectName)}/_apis/test/runs"
+            + $"?minLastUpdatedDate={Uri.EscapeDataString(from.ToString("o"))}"
+            + $"&maxLastUpdatedDate={Uri.EscapeDataString(to.ToString("o"))}"
+            + $"&$top=200&api-version=7.1";
+        var response = await GetAsync<AzTestRunsResponse>(url);
+        return response.Value;
+    }
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<T> GetAsync<T>(string url)
@@ -190,7 +217,7 @@ public class AzureDevOpsClient
                 HttpStatusCode.Unauthorized => new AzureDevOpsException(401,
                     "I couldn't connect to Azure DevOps with this token. Please provide a new PAT."),
                 HttpStatusCode.Forbidden => new AzureDevOpsException(403,
-                    "This token doesn't have the required permissions. Please create a new PAT with: Code (read), Pull Request Threads (read), Build (read), Work Items (read)."),
+                    "This token doesn't have the required permissions. Please create a new PAT with: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)."),
                 HttpStatusCode.TooManyRequests => new AzureDevOpsException(429,
                     "Azure DevOps is temporarily limiting requests. Please wait a moment and try again."),
                 _ => new AzureDevOpsException((int)response.StatusCode,
@@ -255,7 +282,7 @@ public class AzureDevOpsClient
                 HttpStatusCode.Unauthorized => new AzureDevOpsException(401,
                     "I couldn't connect to Azure DevOps with this token. Please provide a new PAT."),
                 HttpStatusCode.Forbidden => new AzureDevOpsException(403,
-                    "This token doesn't have the required permissions. Please create a new PAT with: Code (read), Pull Request Threads (read), Build (read), Work Items (read)."),
+                    "This token doesn't have the required permissions. Please create a new PAT with: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)."),
                 HttpStatusCode.TooManyRequests => new AzureDevOpsException(429,
                     "Azure DevOps is temporarily limiting requests. Please wait a moment and try again."),
                 _ => new AzureDevOpsException((int)response.StatusCode,

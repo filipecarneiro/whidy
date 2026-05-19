@@ -126,6 +126,57 @@ public static class EventNormalizer
         }
     }
 
+    public static IEnumerable<WorkEvent> FromDeployments(
+        IEnumerable<(string ProjectName, AzDeployment Deployment)> items, string userId)
+    {
+        foreach (var (projectName, d) in items)
+        {
+            if (!d.CompletedOn.HasValue) continue;
+            if (d.RequestedFor.Id != userId) continue;
+
+            var failed = d.DeploymentStatus?.Equals("failed", StringComparison.OrdinalIgnoreCase) == true;
+            var title = failed
+                ? $"Failed deployment of {d.Release.Name} to {d.ReleaseEnvironment.Name}"
+                : $"Deployed {d.Release.Name} to {d.ReleaseEnvironment.Name}";
+
+            yield return new WorkEvent
+            {
+                Timestamp   = d.CompletedOn.Value,
+                Type        = EventType.Deployment,
+                Repository  = d.ReleaseDefinition.Name,
+                ProjectName = projectName,
+                Title       = title,
+                Outcome     = failed ? BuildOutcome.Failed : BuildOutcome.Succeeded
+            };
+        }
+    }
+
+    public static IEnumerable<WorkEvent> FromTestRuns(
+        IEnumerable<(string ProjectName, AzTestRun Run)> items, string userId)
+    {
+        foreach (var (projectName, r) in items)
+        {
+            if (!r.CompletedDate.HasValue) continue;
+            if (r.TotalTests == 0) continue;
+            if (r.Owner.Id != userId) continue;
+
+            var failed = r.TotalTests - r.PassedTests;
+            var title = failed > 0
+                ? $"Ran {r.TotalTests} tests — {failed} failed"
+                : $"Ran {r.TotalTests} tests — all passed";
+
+            yield return new WorkEvent
+            {
+                Timestamp   = r.CompletedDate.Value,
+                Type        = EventType.TestRun,
+                Repository  = projectName,
+                ProjectName = projectName,
+                Title       = title,
+                FailedTests = failed
+            };
+        }
+    }
+
     private static readonly System.Text.RegularExpressions.Regex TicketPrefixRegex =
         new(@"^(\[[\w\-]+\]|AB#\d+)\s*", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 

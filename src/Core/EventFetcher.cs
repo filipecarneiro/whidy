@@ -23,17 +23,21 @@ public static class EventFetcher
         var reposByProject = await FetchRepositoriesAsync(client, projects);
 
         // Fetch all event types in parallel
-        var commitTask = FetchCommitsAsync(client, identity.Email, reposByProject, from, to);
+        var commitTask    = FetchCommitsAsync(client, identity.Email, reposByProject, from, to);
         var prCreatedTask = client.GetPullRequestsByCreatorAsync(identity.Id, from, to);
         var prReviewedTask = client.GetPullRequestsByReviewerAsync(identity.Id, from, to);
-        var buildTask = FetchBuildsAsync(client, identity.Email, projects, from, to);
+        var buildTask      = FetchBuildsAsync(client, identity.Email, projects, from, to);
+        var deploymentTask = FetchDeploymentsAsync(client, projects, from, to);
+        var testRunTask    = FetchTestRunsAsync(client, projects, from, to);
 
-        await Task.WhenAll(commitTask, prCreatedTask, prReviewedTask, buildTask);
+        await Task.WhenAll(commitTask, prCreatedTask, prReviewedTask, buildTask, deploymentTask, testRunTask);
 
-        var commits = await commitTask;
-        var prsCreated = await prCreatedTask;
+        var commits     = await commitTask;
+        var prsCreated  = await prCreatedTask;
         var prsReviewed = await prReviewedTask;
-        var builds = await buildTask;
+        var builds      = await buildTask;
+        var deployments = await deploymentTask;
+        var testRuns    = await testRunTask;
 
         // Combine created and reviewed PRs (deduplicate by ID)
         var allPrs = prsCreated
@@ -52,6 +56,8 @@ public static class EventFetcher
         events.AddRange(EventNormalizer.FromReviewerPrs(prsReviewed, identity.Id, from, to));
         events.AddRange(threadEvents);
         events.AddRange(EventNormalizer.FromBuilds(builds));
+        events.AddRange(EventNormalizer.FromDeployments(deployments, identity.Id));
+        events.AddRange(EventNormalizer.FromTestRuns(testRuns, identity.Id));
 
         // Deduplicate: same commit fetched from multiple repos or branches
         var deduped = events
@@ -106,6 +112,50 @@ public static class EventFetcher
         DateTimeOffset from, DateTimeOffset to)
     {
         var tasks = projects.Select(p => client.GetBuildsAsync(p.Name, requestedForEmail, from, to));
+        var results = await Task.WhenAll(tasks);
+        return results.SelectMany(r => r).ToList();
+    }
+
+    private static async Task<List<(string, AzDeployment)>> FetchDeploymentsAsync(
+        AzureDevOpsClient client,
+        List<AzProject> projects,
+        DateTimeOffset from, DateTimeOffset to)
+    {
+        var tasks = projects.Select(async p =>
+        {
+            try
+            {
+                var items = await client.GetDeploymentsAsync(p.Name, from, to);
+                return items.Select(d => (p.Name, d));
+            }
+            catch (AzureDevOpsException ex) when (ex.StatusCode is 404 or 500)
+            {
+                // Project doesn't have Release Management enabled — skip silently
+                return Enumerable.Empty<(string, AzDeployment)>();
+            }
+        });
+        var results = await Task.WhenAll(tasks);
+        return results.SelectMany(r => r).ToList();
+    }
+
+    private static async Task<List<(string, AzTestRun)>> FetchTestRunsAsync(
+        AzureDevOpsClient client,
+        List<AzProject> projects,
+        DateTimeOffset from, DateTimeOffset to)
+    {
+        var tasks = projects.Select(async p =>
+        {
+            try
+            {
+                var items = await client.GetTestRunsAsync(p.Name, from, to);
+                return items.Select(r => (p.Name, r));
+            }
+            catch (AzureDevOpsException ex) when (ex.StatusCode is 404 or 500)
+            {
+                // Project doesn't have Test Management enabled — skip silently
+                return Enumerable.Empty<(string, AzTestRun)>();
+            }
+        });
         var results = await Task.WhenAll(tasks);
         return results.SelectMany(r => r).ToList();
     }

@@ -82,9 +82,18 @@ public static class LabelGenerator
             return !string.IsNullOrWhiteSpace(title) && !AutoMergeCommit.IsMatch(title);
         });
 
-        // If every commit in this episode is a merge commit, there's no useful label
+        // If every commit in this episode is a merge commit (or there are none),
+        // fall back to a deployment / test run event title if available, then the repo name.
         if (best is null)
-            return Truncate($"Work in {episode.Repository}");
+        {
+            var altTitle = episode.Events
+                .Where(e => e.Type is EventType.Deployment or EventType.TestRun
+                            && !string.IsNullOrWhiteSpace(e.Title))
+                .OrderByDescending(e => e.Timestamp)
+                .Select(e => e.Title!)
+                .FirstOrDefault();
+            return Truncate(altTitle ?? $"Work in {episode.Repository}");
+        }
 
         var effTitle = EffTitle(best);
 
