@@ -86,7 +86,15 @@ public static class LabelGenerator
         if (best is null)
             return Truncate($"Work in {episode.Repository}");
 
-        var (verb, message) = ParseCommitVerb(EffTitle(best));
+        var effTitle = EffTitle(best);
+
+        // When the title came from a work item fallback (commit was just an ID),
+        // WI titles are task descriptions — don't run them through verb parsing.
+        // Append the AB# ref so the source is always traceable.
+        if (string.IsNullOrWhiteSpace(best.Title))
+            return Truncate($"{effTitle} (AB#{best.WorkItemId})");
+
+        var (verb, message) = ParseCommitVerb(effTitle);
         return Truncate($"{verb} {LowerFirst(message)}");
     }
 
