@@ -70,7 +70,7 @@ public class AzureDevOpsClient
     // ── Commits ───────────────────────────────────────────────────────────────
 
     public async Task<List<AzCommit>> GetCommitsAsync(
-        string projectName, string repoId, string authorEmail,
+        string projectName, string repoId,
         DateTimeOffset from, DateTimeOffset to)
     {
         var results = new List<AzCommit>();
@@ -81,7 +81,7 @@ public class AzureDevOpsClient
         {
             var url = $"{_orgUrl}/{Uri.EscapeDataString(projectName)}/_apis/git/repositories/{Uri.EscapeDataString(repoId)}/commits"
                 + $"?api-version=7.1"
-                + $"&searchCriteria.authorEmail={Uri.EscapeDataString(authorEmail)}"
+                + $"&searchCriteria.includePushData=true"
                 + $"&searchCriteria.fromDate={Uri.EscapeDataString(from.ToString("o"))}"
                 + $"&searchCriteria.toDate={Uri.EscapeDataString(to.ToString("o"))}"
                 + $"&$top={top}&$skip={skip}";
@@ -198,7 +198,29 @@ public class AzureDevOpsClient
         var response = await GetAsync<AzTestRunsResponse>(url);
         return response.Value;
     }
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Identities ─────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Looks up the email for an identity by its GUID using the Identities API.
+    /// Falls back gracefully to an empty string if the API is unavailable or returns no mail.
+    /// This is needed for Azure DevOps Server on-prem, where connectionData may return a
+    /// domain username instead of an email in the Account property.
+    /// </summary>
+    public async Task<string> GetIdentityEmailAsync(string identityId)
+    {
+        try
+        {
+            var url = $"{_orgUrl}/_apis/identities?identityIds={Uri.EscapeDataString(identityId)}&api-version=7.1";
+            var response = await GetAsync<IdentitiesResponse>(url);
+            var identity = response.Value.FirstOrDefault();
+            var mail = identity?.Properties?.Mail?.Value ?? string.Empty;
+            return mail.Contains('@') ? mail : string.Empty;
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private async Task<T> GetAsync<T>(string url)
     {

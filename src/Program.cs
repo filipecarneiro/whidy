@@ -25,8 +25,12 @@ if (args.Length == 1 && args[0] == "--help")
 
 var showWorkItems = args.Contains("--work-items", StringComparer.OrdinalIgnoreCase)
                  || args.Contains("--wi", StringComparer.OrdinalIgnoreCase);
+var debugMode = args.Contains("--debug", StringComparer.OrdinalIgnoreCase);
 args = args.Where(a => !a.Equals("--work-items", StringComparison.OrdinalIgnoreCase)
-                    && !a.Equals("--wi", StringComparison.OrdinalIgnoreCase)).ToArray();
+                    && !a.Equals("--wi", StringComparison.OrdinalIgnoreCase)
+                    && !a.Equals("--debug", StringComparison.OrdinalIgnoreCase)).ToArray();
+
+Whidy.Core.DebugLog.Enabled = debugMode;
 
 // ── Parse arguments ──────────────────────────────────────────────────────────
 
@@ -64,11 +68,20 @@ var client = new AzureDevOpsClient(httpClient, config.AzureDevOps.Url, config.Az
 
 try
 {
-    // Resolve identity
     var identity = await IdentityResolver.ResolveAsync(client);
 
     // Fetch events — with yesterday lookback if needed
     var (events, actualRange) = await FetchWithLookbackAsync(client, identity, requestedRange, appSettings);
+
+    DebugLog.Section("Events");
+    DebugLog.Write($"Date range   : {actualRange.Start:yyyy-MM-dd} → {actualRange.End:yyyy-MM-dd}");
+    DebugLog.Write($"Total events : {events.Count}");
+    if (events.Count > 0)
+    {
+        var byType = events.GroupBy(e => e.Type).OrderByDescending(g => g.Count());
+        foreach (var g in byType)
+            DebugLog.Write($"  {g.Key,-14}: {g.Count()}");
+    }
 
     if (events.Count == 0)
     {
@@ -79,16 +92,40 @@ try
     // Group into episodes
     var episodes = EpisodeGrouper.Group(events, appSettings.EpisodeWindowMinutes);
 
+    DebugLog.Section("Episode grouping");
+    DebugLog.Write($"Window       : {appSettings.EpisodeWindowMinutes} min");
+    DebugLog.Write($"Episodes     : {episodes.Count}");
+    foreach (var (ep, i) in episodes.Select((e, i) => (e, i + 1)))
+        DebugLog.Write($"  [{i}] {ep.Repository} — {ep.Events.Count} event(s)");
+
     // Fetch work items — always, for label enrichment; display only with --wi
     var workItems = await WorkItemFetcher.FetchAsync(client, identity, actualRange);
     var workItemTitles = workItems.ToDictionary(w => w.Id, w => w.Title);
+
+    DebugLog.Section("Work items");
+    DebugLog.Write($"Count        : {workItems.Count}");
+    foreach (var wi in workItems)
+        DebugLog.Write($"  #{wi.Id} [{wi.State}] {wi.Title}");
 
     // Classify + label
     EpisodeClassifier.Classify(episodes, appSettings.Insights);
     LabelGenerator.GenerateLabels(episodes, workItemTitles);
 
+    DebugLog.Section("Episodes (classified + labelled)");
+    foreach (var (ep, i) in episodes.Select((e, i) => (e, i + 1)))
+    {
+        DebugLog.Write($"  [{i}] {ep.Repository} | {ep.Type} | \"{ep.Label}\"");
+        foreach (var ev in ep.Events)
+            DebugLog.Write($"      {ev.Timestamp:HH:mm} {ev.Type,-14} {ev.Title}");
+    }
+
     // Extract insights
     var insights = InsightEngine.Extract(events, episodes, appSettings.Insights);
+
+    DebugLog.Section("Insights");
+    DebugLog.Write($"Count        : {insights.Count}");
+    foreach (var ins in insights)
+        DebugLog.Write($"  [{ins.Rule}] {ins.Sentence}");
 
     // Render
     ConsoleRenderer.Render(actualRange, episodes, insights, showWorkItems ? workItems : null);

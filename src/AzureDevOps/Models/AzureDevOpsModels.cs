@@ -48,7 +48,11 @@ public record CommitsResponse(
 public record AzCommit(
     [property: JsonPropertyName("commitId")] string CommitId,
     [property: JsonPropertyName("author")] AzGitUserDate Author,
-    [property: JsonPropertyName("comment")] string Comment);
+    [property: JsonPropertyName("comment")] string Comment,
+    [property: JsonPropertyName("push")] AzPushRef? Push);
+
+public record AzPushRef(
+    [property: JsonPropertyName("pushedBy")] AzIdentityRef PushedBy);
 
 public record AzGitUserDate(
     [property: JsonPropertyName("name")] string Name,
@@ -184,3 +188,18 @@ public record AzTestRun(
     [property: JsonPropertyName("state")] string State,
     [property: JsonPropertyName("totalTests")] int TotalTests,
     [property: JsonPropertyName("passedTests")] int PassedTests);
+
+// ── Identities ────────────────────────────────────────────────────────────────────
+
+public record IdentitiesResponse(
+    [property: JsonPropertyName("value")] List<AzIdentityDetail> Value,
+    [property: JsonPropertyName("count")] int Count);
+
+public record AzIdentityDetail(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("providerDisplayName")] string ProviderDisplayName,
+    [property: JsonPropertyName("properties")] AzIdentityDetailProperties? Properties);
+
+public record AzIdentityDetailProperties(
+    [property: JsonPropertyName("Mail")] AzTypedValue? Mail,
+    [property: JsonPropertyName("Account")] AzTypedValue? Account);

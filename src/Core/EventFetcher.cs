@@ -22,8 +22,13 @@ public static class EventFetcher
         // Build repo list per project in parallel
         var reposByProject = await FetchRepositoriesAsync(client, projects);
 
+        DebugLog.Section("EventFetcher");
+        DebugLog.Write($"Projects     : {projects.Count}");
+        DebugLog.Write($"Repositories : {reposByProject.Values.Sum(r => r.Count)} across {reposByProject.Count} project(s)");
+        DebugLog.Write($"Identity ID  : {identity.Id}");
+
         // Fetch all event types in parallel
-        var commitTask    = FetchCommitsAsync(client, identity.Email, reposByProject, from, to);
+        var commitTask    = FetchCommitsAsync(client, identity.Id, reposByProject, from, to);
         var prCreatedTask = client.GetPullRequestsByCreatorAsync(identity.Id, from, to);
         var prReviewedTask = client.GetPullRequestsByReviewerAsync(identity.Id, from, to);
         var buildTask      = FetchBuildsAsync(client, identity.Email, projects, from, to);
@@ -39,6 +44,34 @@ public static class EventFetcher
         var deployments = await deploymentTask;
         var testRuns    = await testRunTask;
 
+        DebugLog.Write($"Commits (raw): {commits.Count} (filtered to pushedBy identity)");
+        foreach (var (repo, commit) in commits)
+            DebugLog.Write($"  {commit.Author.Date:HH:mm} [{repo.Name}] {commit.Comment.Split('\n')[0].Trim()} — {commit.Author.Name} <{commit.Author.Email}> pushed by {commit.Push?.PushedBy?.DisplayName}");
+
+        DebugLog.Write($"PRs created  : {prsCreated.Count}");
+        foreach (var pr in prsCreated)
+            DebugLog.Write($"  !{pr.PullRequestId} [{pr.Status}] {pr.Title} ({pr.Repository.Name}, {pr.CreationDate:HH:mm})");
+
+        DebugLog.Write($"PRs reviewed : {prsReviewed.Count}");
+        foreach (var pr in prsReviewed)
+        {
+            var reviewer = pr.Reviewers?.FirstOrDefault(r => r.Id == identity.Id);
+            var vote = reviewer?.Vote switch { >= 5 => "approved", <= -1 => "rejected", _ => "commented" };
+            DebugLog.Write($"  !{pr.PullRequestId} [{pr.Status}] {pr.Title} ({pr.Repository.Name}) — {vote}");
+        }
+
+        DebugLog.Write($"Builds       : {builds.Count}");
+        foreach (var b in builds)
+            DebugLog.Write($"  #{b.Id} [{b.Result ?? b.Status}] {b.Definition.Name} — build {b.BuildNumber} ({b.FinishTime?.ToString("HH:mm") ?? "in progress"})");
+
+        DebugLog.Write($"Deployments  : {deployments.Count}");
+        foreach (var (proj, d) in deployments)
+            DebugLog.Write($"  [{d.DeploymentStatus}] {d.Release.Name} → {d.ReleaseEnvironment.Name} ({proj}, {d.CompletedOn?.ToString("HH:mm") ?? "in progress"})");
+
+        DebugLog.Write($"Test runs    : {testRuns.Count}");
+        foreach (var (proj, r) in testRuns)
+            DebugLog.Write($"  [{r.State}] {r.Name} — {r.PassedTests}/{r.TotalTests} passed ({proj}, {r.CompletedDate?.ToString("HH:mm") ?? "running"})");
+
         // Combine created and reviewed PRs (deduplicate by ID)
         var allPrs = prsCreated
             .Concat(prsReviewed)
@@ -48,6 +81,10 @@ public static class EventFetcher
 
         // Fetch PR threads for all PRs in the date range (in parallel, capped to avoid overload)
         var threadEvents = await FetchPrThreadEventsAsync(client, identity.Id, allPrs, from, to);
+
+        DebugLog.Write($"PR threads   : {threadEvents.Count} comment event(s) from {allPrs.Count} PR(s)");
+        foreach (var ev in threadEvents)
+            DebugLog.Write($"  {ev.Timestamp:HH:mm} [{ev.Repository}] !{ev.PullRequestId} {ev.Title}");
 
         // Normalize everything into WorkEvent list
         var events = new List<WorkEvent>();
@@ -68,10 +105,14 @@ public static class EventFetcher
             .ToList();
 
         // Filter strictly to the requested date range
-        return deduped
+        var result = deduped
             .Where(e => e.Timestamp >= from && e.Timestamp <= to)
             .OrderBy(e => e.Timestamp)
             .ToList();
+
+        DebugLog.Write($"After dedup  : {deduped.Count} → after date filter: {result.Count}");
+
+        return result;
     }
 
     private static async Task<Dictionary<string, List<AzRepository>>> FetchRepositoriesAsync(
@@ -89,7 +130,7 @@ public static class EventFetcher
 
     private static async Task<List<(AzRepository Repo, AzCommit Commit)>> FetchCommitsAsync(
         AzureDevOpsClient client,
-        string authorEmail,
+        string pusherIdentityId,
         Dictionary<string, List<AzRepository>> reposByProject,
         DateTimeOffset from, DateTimeOffset to)
     {
@@ -97,8 +138,10 @@ public static class EventFetcher
             .SelectMany(kv => kv.Value.Select(repo => new { Project = kv.Key, Repo = repo }))
             .Select(async x =>
             {
-                var commits = await client.GetCommitsAsync(x.Project, x.Repo.Id, authorEmail, from, to);
-                return commits.Select(c => (Repo: x.Repo, Commit: c));
+                var commits = await client.GetCommitsAsync(x.Project, x.Repo.Id, from, to);
+                return commits
+                    .Where(c => c.Push?.PushedBy?.Id == pusherIdentityId)
+                    .Select(c => (Repo: x.Repo, Commit: c));
             });
 
         var results = await Task.WhenAll(tasks);
@@ -111,6 +154,10 @@ public static class EventFetcher
         List<AzProject> projects,
         DateTimeOffset from, DateTimeOffset to)
     {
+        // An empty email would cause the API to return builds for all users.
+        if (string.IsNullOrWhiteSpace(requestedForEmail))
+            return [];
+
         var tasks = projects.Select(p => client.GetBuildsAsync(p.Name, requestedForEmail, from, to));
         var results = await Task.WhenAll(tasks);
         return results.SelectMany(r => r).ToList();
