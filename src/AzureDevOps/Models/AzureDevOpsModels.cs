@@ -37,7 +37,8 @@ public record RepositoriesResponse(
 public record AzRepository(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("project")] AzProject Project);
+    [property: JsonPropertyName("project")] AzProject Project,
+    [property: JsonPropertyName("isDisabled")] bool? IsDisabled = null);
 
 // ── Commits ───────────────────────────────────────────────────────────────────
 

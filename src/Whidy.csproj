@@ -13,4 +13,8 @@
     <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Whidy.Tests" />
+  </ItemGroup>
+
 </Project>

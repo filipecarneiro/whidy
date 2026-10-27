@@ -121,12 +121,18 @@ public static class EventFetcher
         var tasks = projects.Select(async p =>
         {
             var repos = await client.GetRepositoriesAsync(p.Name);
-            return (p.Name, repos);
+            var active = ActiveRepositories(repos);
+            DebugLog.Write($"Project {p.Name}: skipped {repos.Count - active.Count} disabled repositories");
+            return (p.Name, active);
         });
 
         var results = await Task.WhenAll(tasks);
-        return results.ToDictionary(r => r.Name, r => r.repos);
+        return results.ToDictionary(r => r.Name, r => r.active);
     }
+
+    // The commits API answers 404 for a disabled repository.
+    internal static List<AzRepository> ActiveRepositories(IEnumerable<AzRepository> repositories)
+        => repositories.Where(r => r.IsDisabled != true).ToList();
 
     private static async Task<List<(AzRepository Repo, AzCommit Commit)>> FetchCommitsAsync(
         AzureDevOpsClient client,
