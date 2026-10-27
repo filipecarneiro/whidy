@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Whidy.AzureDevOps.Models;
+using Whidy.Core;
 
 namespace Whidy.AzureDevOps;
 
@@ -15,6 +16,9 @@ public class AzureDevOpsClient
     {
         PropertyNameCaseInsensitive = true
     };
+
+    // The test runs API rejects date ranges longer than 7 days with a 400.
+    private static readonly TimeSpan TestRunsMaxSpan = TimeSpan.FromDays(7);
 
     public string OrgUrl => _orgUrl;
 
@@ -191,12 +195,22 @@ public class AzureDevOpsClient
     public async Task<List<AzTestRun>> GetTestRunsAsync(
         string projectName, DateTimeOffset from, DateTimeOffset to)
     {
-        var url = $"{_orgUrl}/{Uri.EscapeDataString(projectName)}/_apis/test/runs"
-            + $"?minLastUpdatedDate={Uri.EscapeDataString(from.ToString("o"))}"
-            + $"&maxLastUpdatedDate={Uri.EscapeDataString(to.ToString("o"))}"
-            + $"&$top=200&api-version=7.1";
-        var response = await GetAsync<AzTestRunsResponse>(url);
-        return response.Value;
+        var runs = new Dictionary<int, AzTestRun>();
+
+        foreach (var (windowFrom, windowTo) in DateWindows.Split(from, to, TestRunsMaxSpan))
+        {
+            var url = $"{_orgUrl}/{Uri.EscapeDataString(projectName)}/_apis/test/runs"
+                + $"?minLastUpdatedDate={Uri.EscapeDataString(windowFrom.ToString("o"))}"
+                + $"&maxLastUpdatedDate={Uri.EscapeDataString(windowTo.ToString("o"))}"
+                + $"&$top=200&api-version=7.1";
+            var response = await GetAsync<AzTestRunsResponse>(url);
+
+            // A run updated exactly on a window boundary can appear in both windows.
+            foreach (var run in response.Value)
+                runs[run.Id] = run;
+        }
+
+        return runs.Values.ToList();
     }
     // ── Identities ─────────────────────────────────────────────────────────────────────
 
