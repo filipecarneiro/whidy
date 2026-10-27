@@ -94,7 +94,7 @@ To get started, paste any Azure DevOps link — a repository, project, or pull r
 Got it. Now you'll need a Personal Access Token (PAT).
 
 Open Azure DevOps → User Settings → Personal Access Tokens → New Token
-Required permissions: Code (read), Pull Request Threads (read), Build (read)
+Required permissions: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)
 
 Paste your token:
 > ************

@@ -158,7 +158,7 @@ To get started, paste any Azure DevOps link — a repository, project, or pull r
 Got it. Now you'll need a Personal Access Token (PAT).
 
 Open Azure DevOps → User Settings → Personal Access Tokens → New Token
-Required permissions: Code (read), Pull Request Threads (read), Build (read)
+Required permissions: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)
 
 Paste your token:
 > ************
@@ -230,8 +230,8 @@ Default values are compiled into the application binary. An optional `appsetting
 
 - PAT is used directly in API calls
 - If any API request fails:
-  - 401 → _"I couldn't connect to Azure DevOps with this token. Please provide a new PAT."_
-  - 403 → _"This token doesn't have the required permissions. Please create a new PAT with: Code (read), Pull Request Threads (read), Build (read)."_
+  - 401 → _"Azure DevOps rejected this token on {endpoint}. It may have expired, or it may be missing a scope. Required: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)."_ (Azure DevOps also answers 401 when a valid PAT lacks the scope an endpoint needs.)
+  - 403 → _"This token doesn't have the required permissions. Please create a new PAT with: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)."_
 - If any event source fails during a run, the entire run fails; no partial output is shown
 - Configuration is updated immediately after the user provides a valid replacement token
 
