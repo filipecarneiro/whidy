@@ -20,6 +20,9 @@ public class AzureDevOpsClient
     // The test runs API rejects date ranges longer than 7 days with a 400.
     private static readonly TimeSpan TestRunsMaxSpan = TimeSpan.FromDays(7);
 
+    public const string RequiredScopes =
+        "Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)";
+
     public string OrgUrl => _orgUrl;
 
     public AzureDevOpsClient(HttpClient http, string orgUrl, string pat)
@@ -247,19 +250,7 @@ public class AzureDevOpsClient
         using var response = await _http.GetAsync(url);
 
         if (!response.IsSuccessStatusCode)
-        {
-            throw response.StatusCode switch
-            {
-                HttpStatusCode.Unauthorized => new AzureDevOpsException(401,
-                    "I couldn't connect to Azure DevOps with this token. Please provide a new PAT."),
-                HttpStatusCode.Forbidden => new AzureDevOpsException(403,
-                    "This token doesn't have the required permissions. Please create a new PAT with: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)."),
-                HttpStatusCode.TooManyRequests => new AzureDevOpsException(429,
-                    "Azure DevOps is temporarily limiting requests. Please wait a moment and try again."),
-                _ => new AzureDevOpsException((int)response.StatusCode,
-                    $"Azure DevOps returned an unexpected error ({(int)response.StatusCode}). Please try again.")
-            };
-        }
+            throw ToException(response);
 
         string? continuationToken = null;
         if (response.Headers.TryGetValues("x-ms-continuationtoken", out var tokens))
@@ -312,22 +303,28 @@ public class AzureDevOpsClient
         using var response = await _http.PostAsync(url, content);
 
         if (!response.IsSuccessStatusCode)
-        {
-            throw response.StatusCode switch
-            {
-                HttpStatusCode.Unauthorized => new AzureDevOpsException(401,
-                    "I couldn't connect to Azure DevOps with this token. Please provide a new PAT."),
-                HttpStatusCode.Forbidden => new AzureDevOpsException(403,
-                    "This token doesn't have the required permissions. Please create a new PAT with: Code (read), Pull Request Threads (read), Build (read), Work Items (read), Release (read), Test Management (read)."),
-                HttpStatusCode.TooManyRequests => new AzureDevOpsException(429,
-                    "Azure DevOps is temporarily limiting requests. Please wait a moment and try again."),
-                _ => new AzureDevOpsException((int)response.StatusCode,
-                    $"Azure DevOps returned an unexpected error ({(int)response.StatusCode}). Please try again.")
-            };
-        }
+            throw ToException(response);
 
         var responseJson = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<TResponse>(responseJson, JsonOptions)
             ?? throw new InvalidOperationException("Empty response from Azure DevOps API.");
+    }
+
+    internal static AzureDevOpsException ToException(HttpResponseMessage response)
+    {
+        var path = response.RequestMessage?.RequestUri?.AbsolutePath ?? "unknown endpoint";
+
+        // Azure DevOps answers 401, not 403, when a valid PAT lacks the scope an endpoint needs.
+        return response.StatusCode switch
+        {
+            HttpStatusCode.Unauthorized => new AzureDevOpsException(401,
+                $"Azure DevOps rejected this token on {path}. It may have expired, or it may be missing a scope. Required: {RequiredScopes}."),
+            HttpStatusCode.Forbidden => new AzureDevOpsException(403,
+                $"This token doesn't have the required permissions. Please create a new PAT with: {RequiredScopes}."),
+            HttpStatusCode.TooManyRequests => new AzureDevOpsException(429,
+                "Azure DevOps is temporarily limiting requests. Please wait a moment and try again."),
+            _ => new AzureDevOpsException((int)response.StatusCode,
+                $"Azure DevOps returned an unexpected error ({(int)response.StatusCode}) on {path}. Please try again.")
+        };
     }
 }
